@@ -22,73 +22,74 @@ iarduino_RTC time(RTC_DS1302, 10, 12, 11); //подключение RTC моду
 
 char incomingByte;  //входящие с bluetooth-модуля данные 
 
+int i;
 unsigned short int r, g, b;
 unsigned short int light_on_hour = 10;
 unsigned short int light_off_hour = 14;
 unsigned short int light_on_minute = 30;
 unsigned short int light_off_minute = 30;
-unsigned short int enabled_lamp[4] = {1,1,1,1};	//маска для выбранных вручную фонарей
+unsigned short int enabled_lamp[4] = {1,1,1,1};  //маска для выбранных вручную фонарей
 volatile boolean traffic_state = false;
 volatile int red_time = 10;
 volatile int green_time = 30;
-volatile int time_traffic = 0;
+volatile int traffic_time = 0;
 
 //функция для включения освещения
 void Light_on(){
-	for (i=0; i<256; i++){
-		analogWrite(REDPIN, i);
-		analogWrite(GREENPIN, i);
-		analogWrite(BLUEPIN, i);
-		analogWrite(L1, i*enabled_lamp[0]);
-		analogWrite(L2, i*enabled_lamp[1]);
-		analogWrite(L3, i*enabled_lamp[2]);
-		analogWrite(L4, i*enabled_lamp[3]);
-		delay(FADESPEED);
-		//light_state = true;
+  for (i=0; i<256; i++){
+    analogWrite(REDPIN, i);
+    analogWrite(GREENPIN, i);
+    analogWrite(BLUEPIN, i);
+    analogWrite(L_1, i*enabled_lamp[0]);
+    analogWrite(L_2, i*enabled_lamp[1]);
+    analogWrite(L_3, i*enabled_lamp[2]);
+    analogWrite(L_4, i*enabled_lamp[3]);
+    delay(FADESPEED);
+    //light_state = true;
   };
 };
 
 //функция для отключения освещения
 void Light_off(){
-	for (i=255; i>0; i--){
-		analogWrite(REDPIN, i);
-		analogWrite(GREENPIN, i);
-		analogWrite(BLUEPIN, i);
-		analogWrite(L1, i*enabled_lamp[0]);
-		analogWrite(L2, i*enabled_lamp[1]);
-		analogWrite(L3, i*enabled_lamp[2]);
-		analogWrite(L4, i*enabled_lamp[3]);
-		delay(FADESPEED);
-		//light_state = false;
+  for (i=255; i>0; i--){
+    analogWrite(REDPIN, i);
+    analogWrite(GREENPIN, i);
+    analogWrite(BLUEPIN, i);
+    analogWrite(L_1, i*enabled_lamp[0]);
+    analogWrite(L_2, i*enabled_lamp[1]);
+    analogWrite(L_3, i*enabled_lamp[2]);
+    analogWrite(L_4, i*enabled_lamp[3]);
+    delay(FADESPEED);
+    //light_state = false;
   };
 };
 
 void Traffic_light(){
-	if (!traffic_state){
-		digitalWrite(REDLIGHT, !traffic_state);
-		digitalWrite(GREENLIGHT, traffic_state);
-		time_traffic++;
-		if (time_traffic==red_time){
-			traffic_state = !traffic_state;
-			digitalWrite(REDLIGHT, !traffic_state);
-			digitalWrite(GREENLIGHT, traffic_state);
-			traffic_time = 0;
-		};
-	};
+  if (!traffic_state){
+    digitalWrite(REDLIGHT, !traffic_state);
+    digitalWrite(GREENLIGHT, traffic_state);
+    traffic_time++;
+    if (traffic_time==red_time){
+      traffic_state = !traffic_state;
+      digitalWrite(REDLIGHT, !traffic_state);
+      digitalWrite(GREENLIGHT, traffic_state);
+      traffic_time = 0;
+    };
+  };
 
-	if (traffic_state){
-		digitalWrite(REDLIGHT, !traffic_state);
-		digitalWrite(GREENLIGHT, traffic_state);
-		time_traffic++;
-		if (time_traffic==green_time){
-			traffic_state = !traffic_state;
-			digitalWrite(REDLIGHT, !traffic_state);
-			digitalWrite(GREENLIGHT, traffic_state);
-			traffic_time = 0;
-		};
-	};
+  if (traffic_state){
+    digitalWrite(REDLIGHT, !traffic_state);
+    digitalWrite(GREENLIGHT, traffic_state);
+    traffic_time++;
+    if (traffic_time==green_time){
+      traffic_state = !traffic_state;
+      digitalWrite(REDLIGHT, !traffic_state);
+      digitalWrite(GREENLIGHT, traffic_state);
+      traffic_time = 0;
+    };
+  };
 };
-};
+
 
 void setup() {
 //инициализация портов
@@ -113,8 +114,7 @@ void loop() {
 
   Timer1.attachInterrupt(Traffic_light); 
 
-	if (time.Hours == light_on_hour && time.Minutes == light_on_minute) {Light_on();}
-	else if (time.Hours == light_off_hour && time.Minutes == light_off_minute) {Light_off()};
-
+  if (time.Hours == light_on_hour && time.minutes == light_on_minute) Light_on();
+  else if (time.Hours == light_off_hour && time.minutes == light_off_minute) Light_off();
             }
             
