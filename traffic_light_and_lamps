@@ -1,7 +1,6 @@
 #include "Arduino.h"
 #include "TimerOne.h" //библиотека для работы с прерываниями по таймеру
 #include "iarduino_RTC.h" //библиотека для работы с RTC модулем
-
 // имена портов
 // порты светофоров
 #define GREENLIGHT 5
@@ -9,53 +8,59 @@
 // порты фонарей 
 #define L_1 3
 #define L_2 4
-
+#define photoPin 8 // сенсор и понижающий резистор 10 кОм подключены к a8
 //скорость изменения цвета  
-#define FADESPEED 5     //чем выше число, тем медленнее будет переход
-
+#define FADESPEED 20     //чем выше число, тем медленнее будет переход
 iarduino_RTC time(RTC_DS3231); //подключение RTC модуля     
-
 char incomingByte;  //входящие с bluetooth-модуля данные 
-
 int i;
 //время вкл, выкл света
 unsigned short int light_on_hour = 15;
-unsigned short int light_off_hour = 17;
+unsigned short int light_off_hour = 20;
 unsigned short int light_on_minute = 30;
-unsigned short int light_off_minute = 10;
-
+unsigned short int light_off_minute = 59;
 unsigned short int enabled_lamp[2] = {1,1};  //маска для выбранных вручную фонарей
-
 volatile boolean traffic_state = false;
 volatile int red_time = 5;
 volatile int green_time = 10;
 volatile int traffic_time = 0;
+volatile int last_brightness = 0;
 
-boolean light_state = false;
-
-//функция для включения освещения
-void Light_on(){
-  if (light_state == false) {
-  for (i=0; i<256; i++){
+void Light(int last, int current){
+  if (last > current) {   
+  for (i=last; i>=current; i--){
     analogWrite(L_1, i*enabled_lamp[0]);
     analogWrite(L_2, i*enabled_lamp[1]);
     delay(FADESPEED);
   };
-  light_state = true;
-  };
-};
-
-//функция для отключения освещения
-void Light_off(){
-  if (light_state == true) {
-  for (i=255; i>=0; i--){
+    } else {
+      for (i=last; i<=current; i++){
     analogWrite(L_1, i*enabled_lamp[0]);
     analogWrite(L_2, i*enabled_lamp[1]);
     delay(FADESPEED);
-  };
-  light_state = false;
-  };
+  };};
 };
+
+int GetBrightness(){
+  int brightness;
+    switch(analogRead(photoPin)){
+       case 0 ... 150:
+         brightness = 0;
+         break;
+       case 151 ... 300:
+           brightness = 64;
+            break;
+       case 301 ... 500:
+            brightness = 153;
+            break;
+       case 501 ... 1023:
+           brightness = 255;
+            break;         
+        default:
+            break;
+    };
+    return brightness;
+}
 
 void Traffic_light(){
   if (!traffic_state){
@@ -83,7 +88,6 @@ void Traffic_light(){
   };
 };
 
-
 void setup() {
 //инициализация портов
   pinMode(GREENLIGHT, OUTPUT);
@@ -94,21 +98,16 @@ void setup() {
   Timer1.initialize();  //опрос датчика каждую секунду
  Serial.begin(9600);
   time.begin(); //запуск RTC модуля
+    Timer1.attachInterrupt(Traffic_light);
               }
   
 void loop() {
- //noInterrupts(); 
- //interrupts();
-
-  Timer1.attachInterrupt(Traffic_light);
-   Serial.println(time.gettime("d-m-Y, H:i:s, D"));
-   
+   last_brightness = GetBrightness();
    if (time.Hours >= light_on_hour && time.Hours < light_off_hour) {
-    if (time.minutes >= light_on_minute) Light_on(); else Light_off();}
+    if (time.minutes >= light_on_minute) Light(last_brightness, GetBrightness()); else Light(last_brightness, 0);}
     else {
-    if (time.minutes >= light_off_minute) Light_off();
-    else Light_on();
+    if (time.minutes >= light_off_minute) Light(last_brightness, 0);
+    else Light(last_brightness, GetBrightness());
     };
-      
             }
             
